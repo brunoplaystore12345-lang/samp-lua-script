@@ -4,56 +4,15 @@ local widgets = require("widgets")
 local vector3d = require("vector3d")
 local ffi = require("ffi")
 local json = require 'json'
-local ev = require('lib.samp.events')
-local sampev = ev
-local qdl = imgui.new.bool(true)
+local events = require "lib.samp.events"
+local sampev = require "lib.samp.events"
+local qdl = imgui.new.bool(false)
 local activeTab = 1
 local encoding = require('encoding')
 encoding.default = ('CP1251')
 u8 = encoding.UTF8
 local SAMemory = require "SAMemory"
 local DPI = MONET_DPI_SCALE
-
-local function CustomTab(icon, label, id, offsetY, selected, size, rounding)
-    local draw_list = imgui.GetWindowDrawList()
-    local pos = imgui.GetCursorScreenPos()
-
-    -- Aplica o deslocamento vertical igual ao BOTAOO
-    pos.y = pos.y + offsetY * DPI
-
-    local tab_size = size or imgui.ImVec2(140 * DPI, 40 * DPI)
-
-    -- Cores da imagem
-    local color_selected = imgui.GetColorU32Vec4(imgui.ImVec4(0.15, 0.47, 0.68, 1.0)) -- azul
-    local color_unselected = imgui.GetColorU32Vec4(imgui.ImVec4(0.12, 0.12, 0.12, 1.0)) -- cinza escuro
-    local text_selected = imgui.ImVec4(1.0, 1.0, 1.0, 1.0) -- branco total
-    local text_unselected = imgui.ImVec4(1.0, 1.0, 1.0, 0.7) -- branco opaco
-
-    -- Fundo arredondado
-    draw_list:AddRectFilled(
-        pos,
-        imgui.ImVec2(pos.x + tab_size.x, pos.y + tab_size.y),
-        selected and color_selected or color_unselected,
-        rounding or 8 * DPI
-    )
-
-    -- Ícone
-    imgui.SetCursorScreenPos(imgui.ImVec2(pos.x + 8 * DPI, pos.y + 11 * DPI))
-    imgui.TextColored(selected and text_selected or text_unselected, faicons(icon))
-
-    -- Texto
-    imgui.SameLine()
-    imgui.TextColored(selected and text_selected or text_unselected, label)
-
-    -- Clique para mudar de aba
-    if imgui.IsMouseHoveringRect(pos, imgui.ImVec2(pos.x + tab_size.x, pos.y + tab_size.y))
-       and imgui.IsMouseClicked(0) then
-        activeTab = id
-    end
-
-    -- Espaço após a tab
-    imgui.SetCursorScreenPos(imgui.ImVec2(pos.x, pos.y + tab_size.y + 5 * DPI))
-end
 
 local gta = ffi.load("GTASA")
 local camera = SAMemory.camera
@@ -62,30 +21,33 @@ SAMemory.require("CCamera")
 ffi.cdef [[ typedef struct RwV3d{float x,y,z;}RwV3d;void _ZN4CPed15GetBonePositionER5RwV3djb(void* thiz,RwV3d* posn,uint32_t bone,bool calledFromCam);]]
 
 local enable = imgui.new.bool(false)
-local circuloFOVAIM = imgui.new.bool(true)
-local VERIFICAskin = imgui.new.bool(false)
+local circuloFOVAIM = imgui.new.bool(false)
+local VERIFICAskin = imgui.new.bool(true)
 local matarbackwallsAIM  = imgui.new.bool(false)
-local fovSizeAIM = imgui.new.float(102.0)
-local distanceAIM = imgui.new.float(250.0)
+local fovSizeAIM = imgui.new.float(130.0)
+local distanceAIM = imgui.new.float(90.0)
 local smoothvalue = imgui.new.float(7.0)
+local SmoothTap = imgui.new.float(7.0)
 local posiX = imgui.new.float(0.51899999380112)
 local posiY = imgui.new.float(0.45800000429153)
 local stickcamerawithoutmode = imgui.new.bool(false)
 
 local enableSilent = imgui.new.bool(false)
 local cabecaSilent = imgui.new.bool(true)
-local aleatorio = imgui.new.bool(false) 
-local closetFOVsilent = imgui.new.bool(false)
+local melmaiak = imgui.new.bool(false) 
 local matarbackwallsSilent = imgui.new.bool(false)
 local offsetsilentcirculoX = imgui.new.float(0.2704)
-local offsetsilentcirculoY = imgui.new.float(0.1888)
+local offsetsilentcirculoY = imgui.new.float(0.2015)
 local tamanhoFOVsilent = imgui.new.float(130.0)
-local circuloFOV = true
-local VERIFICAskin = imgui.new.bool(false)
+local circuloFOVsilent = imgui.new.bool(false)
+local verificarSKIN = imgui.new.bool(true)
+local minFov = 1
 local sanguesilent = imgui.new.bool(false)
 local fovColor = imgui.new.float[4](0.80, 0.00, 0.00, 0)
 local bosrdabbsilen = imgui.new.float[4](0.80, 0.00, 0.00, 1.00)
 local distanceAIMSILENT = imgui.new.float(90.0)
+local hggostoso = false
+local circuloFOV = false
 
 local unloadBypass = imgui.new.bool(false)
 
@@ -97,10 +59,18 @@ local aimbotpjl = {
 
 local font = renderCreateFont("Arial", 12, 1 + 4) local bones = { 3, 4, 5, 51, 52, 41, 42, 31, 32, 33, 21, 22, 23, 2 }
 
-EspSulista = { enabled = imgui.new.bool(true), max_distance = imgui.new.int(500),
+EspSulista = { enabled = imgui.new.bool(true), max_distance = imgui.new.int(250),
 
-show_skeleton = imgui.new.bool(false),
+show_name = imgui.new.bool(false),
+show_health_armor = imgui.new.bool(false),
 show_line_and_distance = imgui.new.bool(false),
+show_skeleton = imgui.new.bool(false),
+show_distance = imgui.new.bool(false),
+show_box = imgui.new.bool(false),
+show_weapon = imgui.new.bool(false),
+show_status = imgui.new.bool(false),
+localPLAYER = imgui.new.bool(false),
+ignorarDENTROveiculo = imgui.new.bool(false),
 
 font = font
 
@@ -117,6 +87,44 @@ local flags = imgui.WindowFlags.NoTitleBar
 + imgui.WindowFlags.NoResize
 + imgui.WindowFlags.NoScrollbar
 + imgui.WindowFlags.NoScrollWithMouse
+
+    local function CustomTab(icon, label, id, offsetY, selected, size, rounding)
+    local draw_list = imgui.GetWindowDrawList()
+    local pos = imgui.GetCursorScreenPos()
+
+    pos.y = pos.y + offsetY * DPI
+
+    local tab_size = size or imgui.ImVec2(140 * DPI, 40 * DPI)
+
+if type(tab_size) ~= "table" then
+    tab_size = imgui.ImVec2(140 * DPI, 40 * DPI)
+end
+
+    local color_selected = imgui.GetColorU32Vec4(imgui.ImVec4(0.15, 0.47, 0.68, 1.0)) 
+    local color_unselected = imgui.GetColorU32Vec4(imgui.ImVec4(0.12, 0.12, 0.12, 1.0))
+    local text_selected = imgui.ImVec4(1.0, 1.0, 1.0, 1.0)
+    local text_unselected = imgui.ImVec4(1.0, 1.0, 1.0, 0.7)
+
+    draw_list:AddRectFilled(
+        pos,
+        imgui.ImVec2(pos.x + tab_size.x, pos.y + tab_size.y),
+        selected and color_selected or color_unselected,
+        rounding or 8 * DPI
+    )
+
+    imgui.SetCursorScreenPos(imgui.ImVec2(pos.x + 8 * DPI, pos.y + 11 * DPI))
+    imgui.TextColored(selected and text_selected or text_unselected, faicons(icon))
+
+    imgui.SameLine()
+    imgui.TextColored(selected and text_selected or text_unselected, label)
+
+    if imgui.IsMouseHoveringRect(pos, imgui.ImVec2(pos.x + tab_size.x, pos.y + tab_size.y))
+       and imgui.IsMouseClicked(0) then
+        activeTab = id
+    end
+
+    imgui.SetCursorPos(imgui.ImVec2((15) * DPI, offsetY * DPI))
+end
 
 function imgui.CustomCheckbox(str_id, bool, a_speed)
     local size = imgui.ImVec2(21 * DPI, 21 * DPI)
@@ -421,9 +429,9 @@ draw_list:AddLine(
     1.0
 )
     
-CustomTab("\u{f06e}", "Aim", 1, 30, activeTab == 1)
-CustomTab("\u{f21b}", "Silent Aim", 2, 50, activeTab == 2)
-CustomTab("\u{f06e}", "Wall Hack", 3, 130, activeTab == 3)
+CustomTab("\xef\x81\x9b", "Aim", 1, 30, activeTab == 1)
+CustomTab("\xef\x81\xae", "Silent Aim", 2, 60, activeTab == 2)
+CustomTab("\xef\x81\xae", "Wall Hack", 3, 90, activeTab == 3)
 
     imgui.SetCursorPos(imgui.ImVec2(5 * DPI, 5 * DPI))
     imgui.PushStyleColor(imgui.Col.Text, imgui.ImVec4(0.72, 0.85, 1.00, 1.0))
@@ -445,25 +453,25 @@ if activeTab == 1 then
     imgui.PushStyleColor(imgui.Col.SliderGrab, imgui.ImVec4(0, 0, 0, 0))
     imgui.PushStyleColor(imgui.Col.SliderGrabActive, imgui.ImVec4(0, 0, 0, 0))
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 65 * DPI))
-    imgui.SliderFloat("##quwuqysts", fovSizeAIM, 0.0, 450.0, "")
+    imgui.SliderFloat("##quwuqysts", fovSizeAIM, 1.0, 450.0, "")
     imgui.PopStyleColor(4)
     imgui.PopItemWidth()
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 65 * DPI))
-    customSliderFloat("fov", fovSizeAIM, 0.0, 450.0, "%.0f")
+    customSliderFloat("fov", fovSizeAIM, 1.0, 450.0, "%.0f")
         
     imgui.SetCursorPos(imgui.ImVec2(417 * DPI, 113 * DPI))
-    imgui.Text("Distancia")
+    imgui.Text("distanceAIM")
     imgui.PushItemWidth(190 * DPI)
     imgui.PushStyleColor(imgui.Col.FrameBg, imgui.ImVec4(0, 0, 0, 0))
     imgui.PushStyleColor(imgui.Col.FrameBgActive, imgui.ImVec4(0, 0, 0, 0))
     imgui.PushStyleColor(imgui.Col.SliderGrab, imgui.ImVec4(0, 0, 0, 0))
     imgui.PushStyleColor(imgui.Col.SliderGrabActive, imgui.ImVec4(0, 0, 0, 0))
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 103 * DPI))
-    imgui.SliderFloat("##kaoqppoo", distanceAIM, 0.0, 450.0, "")
+    imgui.SliderFloat("##kaoqppoo", distanceAIM, 1.0, 450.0, "")
     imgui.PopStyleColor(4)
     imgui.PopItemWidth()
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 103 * DPI))
-    customSliderFloat("distancia", distanceAIM, 0.0, 450.0, "%.0f")
+    customSliderFloat("distanceAIM", distanceAIM, 1.0, 450.0, "%.0f")
             
     imgui.SetCursorPos(imgui.ImVec2(417 * DPI, 151 * DPI))
     imgui.Text("Smooth")
@@ -473,11 +481,11 @@ if activeTab == 1 then
     imgui.PushStyleColor(imgui.Col.SliderGrab, imgui.ImVec4(0, 0, 0, 0))
     imgui.PushStyleColor(imgui.Col.SliderGrabActive, imgui.ImVec4(0, 0, 0, 0))
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 141 * DPI))
-    imgui.SliderFloat("##tsfqvcccs", smoothvalue, 0.0, 20.0, "")
+    imgui.SliderFloat("##tsfqvcccs", smoothvalue, 1.0, 100.0, "")
     imgui.PopStyleColor(4)
     imgui.PopItemWidth()
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 141 * DPI))
-    customSliderFloat("smooth", smoothvalue, 0.0, 20.0, "%.0f")    
+    customSliderFloat("smooth", smoothvalue, 1.0, 100.0, "%.0f")    
        
 local function desativarTodosExceto(opcao)
     aimbotpjl.cabecaAIM[0]       = (opcao == "cabeca")
@@ -528,11 +536,11 @@ end
     imgui.PushStyleColor(imgui.Col.SliderGrab, imgui.ImVec4(0, 0, 0, 0))
     imgui.PushStyleColor(imgui.Col.SliderGrabActive, imgui.ImVec4(0, 0, 0, 0))
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 60 * DPI))
-    imgui.SliderFloat("##pqopp", tamanhoFOVsilent, 0.0, 450.0, "")
+    imgui.SliderFloat("##pqopp", tamanhoFOVsilent, 1.0, 450.0, "")
     imgui.PopStyleColor(4)
     imgui.PopItemWidth()
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 60 * DPI))
-    customSliderFloat("size", tamanhoFOVsilent, 0.0, 450.0, "%.0f")
+    customSliderFloat("size", tamanhoFOVsilent, 1.0, 450.0, "%.0f")
   
      imgui.SetCursorPos(imgui.ImVec2(235 * DPI, 96 * DPI))
     imgui.PushStyleColor(imgui.Col.Text, imgui.ImVec4(0.72, 0.85, 1.00, 1.0))
@@ -548,11 +556,11 @@ end
     imgui.PushStyleColor(imgui.Col.SliderGrab, imgui.ImVec4(0, 0, 0, 0))
     imgui.PushStyleColor(imgui.Col.SliderGrabActive, imgui.ImVec4(0, 0, 0, 0))
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 119 * DPI))
-    imgui.SliderFloat("##kaoqppoo", distanceAIMSILENT, 0.0, 450.0, "")
+    imgui.SliderFloat("##kaoqppoo", distanceAIMSILENT, 1.0, 450.0, "")
     imgui.PopStyleColor(4)
     imgui.PopItemWidth()
     imgui.SetCursorPos(imgui.ImVec2(175 * DPI, 119 * DPI))
-    customSliderFloat("size", distanceAIMSILENT, 0.0, 450.0, "%.0f")
+    customSliderFloat("aaaaapze", distanceAIMSILENT, 1.0, 450.0, "%.0f")
     
     elseif activeTab == 3 then 
     
@@ -583,7 +591,8 @@ function main()
             end
             
         lua_thread.create(Aimbot)
-    
+        drawESP()
+        
         if isSampAvailable() then
             sampRegisterChatCommand("chatt", function()
                 qdl[0] = not qdl[0]
@@ -679,7 +688,7 @@ function Aimbot()
         local sx, sy = convertCartesianCoordinatesToSpherical(pos)
         local tx, ty = getCrosshairRotation()
         local cx, cy = getCameraRotation()
-        local divisor = math.max(smoothvalue[0], 1.00)
+        local divisor = math.max(smoothvalue[0], 0.01)
         local diffYaw = NormalizeAngle(sx - tx)
         local diffPitch = sy - ty
         local smoothYaw = cx + diffYaw / divisor
@@ -700,7 +709,7 @@ function Aimbot()
                 local x, y, z = getCharCoordinates(char)
                 local sx, sy = convert3DCoordsToScreen(x, y, z)
                 local dist = getDistanceBetweenCoords2d(
-                    w / 1.923 + posiX[0], h / 2.306 + posiY[0],
+                    w / 1.923 + posiX[0], h / 2.210 + posiY[0],
                     sx, sy
                 )
                 if isCurrentCharWeapon(PLAYER_PED, 34) then
@@ -763,7 +772,7 @@ function Aimbot()
         local sx, sy = convertCartesianCoordinatesToSpherical(targetBone)
         local tx, ty = getCrosshairRotation()
         local cx, cy = getCameraRotation()
-        local divisor = math.max(smoothvalue[0], 0.01)
+        local divisor = math.max(SmoothTap[0], 0.01)
         local diffYaw = NormalizeAngle(sx - tx)
         local diffPitch = sy - ty
         local smoothYaw = cx + diffYaw / divisor
@@ -779,7 +788,7 @@ imgui.OnFrame(
 function()
     local screenWidth, screenHeight = getScreenResolution()        
     local circleX = screenWidth / 1.923 + posiX[0]        
-    local circleY = screenHeight / 2.306 + posiY[0]        
+    local circleY = screenHeight / 2.210 + posiY[0]        
     local color = imgui.ImVec4(pjl.fovColorAim[0], pjl.fovColorAim[1], pjl.fovColorAim[2], pjl.fovColorAim[3])        
     local bordaaim = imgui.ImVec4(pjl.bordaaimon[0], pjl.bordaaimon[1], pjl.bordaaimon[2], pjl.bordaaimon[3])        
     local colorHex = imgui.ColorConvertFloat4ToU32(color)        
@@ -792,3 +801,361 @@ function()
         imgui.GetBackgroundDrawList():AddCircle(imgui.ImVec2(screenWidth / 2, screenHeight / 2), fovSizeAIM[0], imgui.ColorConvertFloat4ToU32(bordaaim), 300)        
     end        
 end)
+
+imgui.OnFrame(
+    function()
+        return enableSilent[0] and not isGamePaused()
+    end,
+    function(circle)
+        circle.HideCursor = true
+        local screenWidth, screenHeight = getScreenResolution()
+        local fovCenterX, fovCenterY
+        local fovRadius = tamanhoFOVsilent[0]
+        if isCurrentCharWeapon(PLAYER_PED, 34) then
+            fovCenterX = screenWidth / 2
+            fovCenterY = screenHeight / 2
+        else
+            fovCenterX = screenWidth * 1.923 * offsetsilentcirculoX[0]
+            fovCenterY = screenHeight * 2.306 * offsetsilentcirculoY[0]
+        end
+        if circuloFOVsilent[0] then
+            local segments = 300
+            local circleColor = imgui.ImVec4(fovColor[0], fovColor[1], fovColor[2], fovColor[3])
+            local bordaColor = imgui.ImVec4(bosrdabbsilen[0], bosrdabbsilen[1], bosrdabbsilen[2], bosrdabbsilen[3])
+            imgui.GetBackgroundDrawList():AddCircle(
+                imgui.ImVec2(fovCenterX, fovCenterY),
+                fovRadius,
+                imgui.ColorConvertFloat4ToU32(bordaColor),
+                segments
+            )
+            imgui.GetBackgroundDrawList():AddCircleFilled(
+                imgui.ImVec2(fovCenterX, fovCenterY),
+                fovRadius,
+                imgui.ColorConvertFloat4ToU32(circleColor),
+                segments
+            )
+        end
+        circuloFOV =
+            cabecaSilent[0]
+        if circuloFOV then
+            local playersProcessed = 0
+            local closestPlayerId = nil
+            local closestDistance = math.huge
+            local minDistance = distanceAIMSILENT[0]
+            local alivePlayers = {}
+            for playerId = 0, 999 do
+                if maxPlayersInFOV ~= nil and playersProcessed >= maxPlayersInFOV then
+                    break
+                end
+                local success, ped = sampGetCharHandleBySampPlayerId(playerId)
+                if success and doesCharExist(ped) and isCharOnScreen(ped) and not isCharDead(ped) then
+                    local pedX, pedY, pedZ = getCharCoordinates(ped)
+                    local screenX, screenY = convert3DCoordsToScreen(pedX, pedY, pedZ)
+                    if not matarbackwallsSilent[0] then
+                        local playerX, playerY, playerZ = getCharCoordinates(PLAYER_PED)
+                        local hit, _, _, _, entityHit =
+                            processLineOfSight(
+                            playerX,
+                            playerY,
+                            playerZ,
+                            pedX,
+                            pedY,
+                            pedZ,
+                            true,
+                            true,
+                            false,
+                            true,
+                            false,
+                            false,
+                            false,
+                            false
+                        )
+                        if hit and entityHit ~= ped then
+                            goto continue
+                        end
+                    end
+                    if isPlayerInFOV(screenX, screenY, fovCenterX, fovCenterY, fovRadius) then
+                        local distance = math.sqrt((screenX - fovCenterX) ^ 2 + (screenY - fovCenterY) ^ 2)
+                        if distance <= minDistance then
+                            table.insert(alivePlayers, {playerId = playerId, distance = distance})
+                        end
+                        playersProcessed = playersProcessed + 1
+                    end
+                end
+                ::continue::
+            end
+            if #alivePlayers > 0 then
+                table.sort(
+                    alivePlayers,
+                    function(a, b)
+                        return a.distance < b.distance
+                    end
+                )
+                closestPlayerId = alivePlayers[1].playerId
+                local success, ped = sampGetCharHandleBySampPlayerId(closestPlayerId)
+                if success then
+                    local pedX, pedY, pedZ = getCharCoordinates(ped)
+                    applyDamageToPlayer(closestPlayerId, pedX, pedY, pedZ, ped)
+                end
+            end
+        end
+    end
+)
+function isPlayerInFOV(playerScreenX, playerScreenY, fovCenterX, fovCenterY, radius)
+    if not fovCenterX or not fovCenterY then
+        return false
+    end
+    local dx = playerScreenX - fovCenterX
+    local dy = playerScreenY - fovCenterY
+    local distanceSquared = dx * dx + dy * dy
+    return distanceSquared <= radius * radius
+end
+function verificarSkinAtiva(playerId)
+    local mymodel = getCharModel(PLAYER_PED)
+    local success, ped = sampGetCharHandleBySampPlayerId(playerId)
+    if success and doesCharExist(ped) then
+        local playerModel = getCharModel(ped)
+        if verificarSKIN[0] and playerModel == mymodel then
+            return false
+        end
+    end
+    return true
+end
+function applyDamageToPlayer(Hitbox, pedX, pedY, pedZ, ped)
+    if not pedX or not pedY or not pedZ or not ped then
+        return
+    end
+    if enableSilent[0] and verificarSkinAtiva(Hitbox) and isCharShooting(PLAYER_PED) then
+        local weaponId = getCurrentCharWeapon(PLAYER_PED)
+        local weapon = getWeaponInfoById(weaponId)
+        local hitboxes = {
+            {cabecaSilent, 9},
+           }
+           
+        if melmaiak[0] then
+            local randomHitbox = math.random(1, #hitboxes)
+            sampSendGiveDamage(Hitbox, weapon.dmg, weaponId, hitboxes[randomHitbox][2])
+        else
+            for _, hitbox in ipairs(hitboxes) do
+                if hitbox[1][0] then
+                    sampSendGiveDamage(Hitbox, weapon.dmg, weaponId, hitbox[2])
+                end
+            end
+        end
+        if sanguesilent[0] then
+            local mx, my, mz = getCharCoordinates(PLAYER_PED)
+            local dirX, dirY, dirZ = mx - pedX, my - pedY, mz - pedZ
+            local length = math.sqrt(dirX ^ 2 + dirY ^ 2 + dirZ ^ 2)
+            if length ~= 0 then
+                dirX, dirY, dirZ = dirX / length, dirY / length, dirZ / length
+            end
+            addBlood(pedX + dirX, pedY + dirY, pedZ + 0.67, 0.2, 0.2, 0.2, 9920, ped)
+        end
+    end
+end
+local function isPlayerInFov(playerX, playerY)
+    local deltaX = playerX - fovX[0]
+    local deltaY = playerY - fovY[0]
+    local distance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
+    if tamanhoFOVsilent[0] < minFov then
+        return true
+    end
+    return distance <= tamanhoFOVsilent[0]
+end
+local function slientarivar()
+    local targetX, targetY = getPlayerPos(targetId)
+    if isPlayerInFov(targetX, targetY) then
+        sendSilentBullet(targetId)
+    end
+end
+local weapons = {
+    {id = 22, delay = 160, dmg = 8.25, distance = 735, camMode = 53, weaponState = 2},
+    {id = 23, delay = 120, dmg = 13.2, distance = 735, camMode = 53, weaponState = 2},
+    {id = 24, delay = 800, dmg = 46.2, distance = 735, camMode = 53, weaponState = 2},
+    {id = 25, delay = 800, dmg = 3.3, distance = 740, camMode = 53, weaponState = 1},
+    {id = 26, delay = 120, dmg = 3.3, distance = 735, camMode = 53, weaponState = 2},
+    {id = 27, delay = 120, dmg = 4.95, distance = 740, camMode = 53, weaponState = 2},
+    {id = 28, delay = 50, dmg = 6.6, distance = 735, camMode = 53, weaponState = 2},
+    {id = 29, delay = 90, dmg = 8.25, distance = 745, camMode = 53, weaponState = 2},
+    {id = 30, delay = 90, dmg = 9.9, distance = 700, camMode = 53, weaponState = 2},
+    {id = 31, delay = 90, dmg = 9.9, distance = 750, camMode = 53, weaponState = 2},
+    {id = 32, delay = 70, dmg = 6.6, distance = 750, camMode = 53, weaponState = 2},
+    {id = 33, delay = 800, dmg = 24.75, distance = 700, camMode = 53, weaponState = 1},
+    {id = 34, delay = 900, dmg = 41.25, distance = 320, camMode = 7, weaponState = 1},
+    {id = 38, delay = 20, dmg = 46.2, distance = 750, camMode = 53, weaponState = 2}
+}
+local weaponCooldowns = {}
+function getWeaponInfoById(id)
+    for _, weapon in pairs(weapons) do
+        if weapon.id == id then
+            return weapon
+        end
+    end
+    return nil
+end
+function onPlayerAttack(player, weaponId)
+    local weapon = getWeaponInfoById(weaponId)
+    if weapon then
+        local currentTime = getCurrentTime()
+        if not weaponCooldowns[player] or (currentTime - weaponCooldowns[player]) >= weapon.delay then
+            weaponCooldowns[player] = currentTime
+            applyDamageToTarget(player, weapon.dmg)
+            setCameraMode(player, weapon.camMode)
+        end
+    end
+end
+function getCurrentTime()
+    return os.clock() * 0
+end
+function applyDamageToTarget(player, damage)
+end
+function setCameraMode(player, camMode)
+end
+function rand()
+    return math.random(-50, 50) / 100
+end
+function getMyId()
+    return select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))
+end
+function sampev.onBulletSync(playerId, data)
+    if data.targetId == getMyId() then
+        shootingAtMe = playerId
+    end
+end
+function sampev.onSendTakeDamage(playerId, damage, weapon, bodypart)
+    shootingAtMe = playerId
+end
+function sampev.onSendGiveDamage(data)
+    if hggostoso then
+        return false
+    end
+end
+function getBonePosition(ped, bone)
+    local pedptr = ffi.cast("void*", getCharPointer(ped))
+    local posn = ffi.new("RwV3d[1]")
+    gta._ZN4CPed15GetBonePositionER5RwV3djb(pedptr, posn, bone, false)
+    return posn[0].x, posn[0].y, posn[0].z
+end
+
+function renderDrawBoxWithBorder(x, y, w, h, color, thickness)
+
+    renderDrawLine(x, y, x + w, y, thickness, color)
+
+    renderDrawLine(x, y + h, x + w, y + h, thickness, color)
+
+    renderDrawLine(x, y, x, y + h, thickness, color)
+
+    renderDrawLine(x + w, y, x + w, y + h, thickness, color)
+end
+
+function drawESP() if not EspSulista.enabled[0] then return end
+
+local bit = require("bit")
+local function rgbaToHex(r, g, b, a)
+    r = math.floor(r * 255)
+    g = math.floor(g * 255)
+    b = math.floor(b * 255)
+    a = math.floor(a * 255)
+    return bit.bor(bit.lshift(a, 24), bit.lshift(r, 16), bit.lshift(g, 8), b)
+end
+
+local white = rgbaToHex(1.0, 1.0, 1.0, 1.0)
+local localX, localY, localZ = getCharCoordinates(PLAYER_PED)
+
+for playerId = 0, sampGetMaxPlayerId() do
+    if sampIsPlayerConnected(playerId) then
+        local result, playerPed = sampGetCharHandleBySampPlayerId(playerId)
+
+        if result and playerPed ~= PLAYER_PED and isCharOnScreen(playerPed) then
+            local targetX, targetY, targetZ = getCharCoordinates(playerPed)
+            local distance = getDistanceBetweenCoords3d(localX, localY, localZ, targetX, targetY, targetZ)
+
+            if distance <= EspSulista.max_distance[0] then
+                local screenX, screenY = convert3DCoordsToScreen(targetX, targetY, targetZ + 1.0)
+                local nick = sampGetPlayerNickname(playerId)
+                local health = sampGetPlayerHealth(playerId)
+                local armor = sampGetPlayerArmor(playerId)
+
+                if screenX and screenY then
+                    if EspSulista.show_name[0] then
+                        renderFontDrawText(EspSulista.font, nick, screenX -30, screenY -30, white)
+                    end
+
+                    if EspSulista.show_distance[0] then
+                        renderFontDrawText(EspSulista.font, string.format("%.1fm", distance), screenX, screenY - 15, white)
+                    end
+
+                    if EspSulista.show_health_armor[0] then
+                        local healthWidth = 50 * (health / 100)
+                        renderDrawBox(screenX - 25, screenY -15, 50, 5, 0xFF000000)
+                        renderDrawBox(screenX - 25, screenY -15, healthWidth, 5, white)
+
+                        if armor > 0 then
+                            local armorWidth = 50 * (armor / 100)
+                            renderDrawBox(screenX - 25, screenY + 7, 50, 3, 0xFF000000)
+                            renderDrawBox(screenX - 25, screenY + 7, armorWidth, 3, white)
+                        end
+                    end
+
+                    if EspSulista.show_line_and_distance[0] then
+                        local selfScreenX, selfScreenY = convert3DCoordsToScreen(localX, localY, localZ)
+                        if selfScreenX and selfScreenY then
+                            renderDrawLine(selfScreenX, selfScreenY, screenX, screenY, 1, white)
+                        end
+                    end
+
+                    if EspSulista.show_skeleton[0] then
+                        for _, bone in ipairs(bones) do
+                            local x1, y1, z1 = getBonePosition(playerPed, bone)
+                            local x2, y2, z2 = getBonePosition(playerPed, bone + 1)
+                            local r1, sx1, sy1 = convert3DCoordsToScreenEx(x1, y1, z1)
+                            local r2, sx2, sy2 = convert3DCoordsToScreenEx(x2, y2, z2)
+                            if r1 and r2 then
+                                renderDrawLine(sx1, sy1, sx2, sy2, 4, white)
+                            end                                                     
+                        end
+                    end
+
+                    if EspSulista.show_box[0] then
+    local x1, y1 = convert3DCoordsToScreen(targetX, targetY, targetZ + 1.0)
+    local x2, y2 = convert3DCoordsToScreen(targetX, targetY, targetZ - 1.0)
+
+    if x1 and y1 and x2 and y2 then
+        local height = y2 - y1
+        local width = height / 2
+
+        local topLeftX = x1 - width / 2
+        local topLeftY = y1
+
+        renderDrawBoxWithBorder(topLeftX, topLeftY, width, height, white, 1)
+    end
+end
+
+                    if EspSulista.show_weapon[0] then
+    local weaponId = getCurrentCharWeapon(playerPed)
+
+    local weaponNames = {
+        [0] = "Fist", [1] = "Brass Knuckles", [22] = "Pistol", [23] = "Silenced",
+        [24] = "Deagle", [25] = "Shotgun", [26] = "Sawn-off", [27] = "Spas-12",
+        [28] = "Uzi", [29] = "MP5", [30] = "AK-47", [31] = "M4",
+        [32] = "Tec-9", [33] = "Rifle", [34] = "Sniper", [35] = "Rocket",
+        [36] = "HS Rocket", [38] = "Minigun"
+    }
+
+    local weaponName = weaponNames[weaponId] or ("ID: " .. weaponId)
+    renderFontDrawText(EspSulista.font, weaponName, screenX - 30, screenY + 15, white)
+end
+
+                  if EspSulista.show_status[0] then
+    local status = "STATUS"
+    local statusY = EspSulista.show_weapon[0] and (screenY + 30) or (screenY + 15)
+    renderFontDrawText(EspSulista.font, status, screenX - 30, statusY, white)
+end
+
+                end
+            end
+        end
+    end
+end
+
+end
