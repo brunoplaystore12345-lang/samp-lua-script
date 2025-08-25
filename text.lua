@@ -395,7 +395,6 @@ local function BOTAOO(label, tabIndex, yPosition)
 end
 
 imgui.OnInitialize(function()
-    imgui.IO.IniFilename = nil
     local config = imgui.ImFontConfig()
     config.MergeMode = true
     config.PixelSnapH = true
