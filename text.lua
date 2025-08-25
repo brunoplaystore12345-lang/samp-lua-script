@@ -422,7 +422,7 @@ local p = imgui.GetWindowPos()
 local topY = p.y + 20 * DPI
 local bottomY = (p.y + imgui.GetWindowHeight()) - 20 * DPI
 
-draw_list:AddLine(
+ draw_list:AddLine(
     imgui.ImVec2(p.x + offset, topY),
     imgui.ImVec2(p.x + offset, bottomY),
     imgui.GetColorU32Vec4(imgui.ImVec4(0.2, 0.2, 0.2, 1.0)),
