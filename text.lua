@@ -20,7 +20,7 @@ local screenWidth, screenHeight = getScreenResolution()
 SAMemory.require("CCamera")
 ffi.cdef [[ typedef struct RwV3d{float x,y,z;}RwV3d;void _ZN4CPed15GetBonePositionER5RwV3djb(void* thiz,RwV3d* posn,uint32_t bone,bool calledFromCam);]]
 
-local enable = imgui.new.bool(false)
+local enable = imgui.new.bool(true)
 local circuloFOVAIM = imgui.new.bool(false)
 local VERIFICAskin = imgui.new.bool(true)
 local matarbackwallsAIM  = imgui.new.bool(false)
