@@ -52,7 +52,7 @@ local circuloFOV = false
 local unloadBypass = imgui.new.bool(false)
 
 local aimbotpjl = {
-    cabecaAIM = imgui.new.bool(false),
+    cabecaAIM = imgui.new.bool(true),
     virilhaaimboott = imgui.new.bool(false),
     peitoaimboott = imgui.new.bool(false)
 }
