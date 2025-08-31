@@ -594,10 +594,13 @@ function main()
         drawESP()
         
         if isSampAvailable() then
-            sampRegisterChatCommand("chatt", function()
-                qdl[0] = not qdl[0]
-            end)
-        end
+            sampRegisterChatCommand("menu", function()
+        qdl[0] = not qdl[0]
+        sampAddChatMessage("Menu " .. (qdl[0] and "aberto" or "fechado"), 0x00FF00)
+    end)
+end
+
+main()
     end
  end
  
