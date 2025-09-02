@@ -411,7 +411,7 @@ end)
 
 imgui.OnFrame(function() return qdl[0] end, function()
    imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(0.0, 0.0, 0.0, 1.0))
-    imgui.SetNextWindowPos(imgui.ImVec2(600, 350), imgui.Cond.FirstUseEver)
+    imgui.SetNextWindowPos(imgui.ImVec2(0, 0), imgui.Cond.FirstUseEver)
     imgui.SetNextWindowSize(imgui.ImVec2(700 * DPI, 395 * DPI), imgui.Cond.Always)
     imgui.Begin("Weather Change", qdl, flags)
 
